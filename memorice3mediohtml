@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pareo de sinónimos</title>
+<style>
+:root{
+  --bg1:#dbeafe;--bg2:#f5e9ff;--ink:#14213d;--panel:rgba(255,255,255,.75);--line:rgba(20,33,61,.18);
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg1:#0b1430;--bg2:#1e1146;--ink:#f4f1ff;--panel:rgba(255,255,255,.09);--line:rgba(255,255,255,.2);color-scheme:dark}
+}
+:root[data-theme="dark"]{--bg1:#0b1430;--bg2:#1e1146;--ink:#f4f1ff;--panel:rgba(255,255,255,.09);--line:rgba(255,255,255,.2);color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg1);background:linear-gradient(160deg,var(--bg1),var(--bg2));color:var(--ink);
+  font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;padding:18px 14px 40px;overflow-x:hidden;text-align:center}
+h1{font-size:clamp(1.6rem,5vw,2.3rem);margin:4px 0 2px}
+.sub{margin:0 0 12px;opacity:.85}
+.stats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px 16px;min-width:92px}
+.stat b{display:block;font-size:1.3rem}
+.stat span{font-size:.78rem;opacity:.75}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:640px;margin:0 auto;perspective:900px}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:12px;
+  box-shadow:0 18px 30px -16px rgba(10,10,60,.4)}
+.col h2{margin:0;font-size:1rem;font-weight:700}
+.tc{display:block;width:100%;min-height:58px;padding:10px 8px;border:0;border-radius:14px;font:inherit;font-weight:700;font-size:clamp(.95rem,3.6vw,1.15rem);
+  color:#14213d;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  transform:perspective(600px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateZ(var(--z,0px));
+  transition:transform .15s ease-out,box-shadow .15s,background .2s;overflow-wrap:anywhere}
+.tc.w{background:linear-gradient(145deg,#ffe08a,#ffb703);box-shadow:0 3px 0 #b07d00,0 6px 0 #946800,0 12px 16px rgba(10,10,60,.35)}
+.tc.s{background:linear-gradient(145deg,#8ff3e6,#2ec4b6);box-shadow:0 3px 0 #1b8a80,0 6px 0 #146e66,0 12px 16px rgba(10,10,60,.35)}
+.tc:active{transform:translateY(4px);box-shadow:0 1px 0 #555,0 4px 8px rgba(10,10,60,.3)}
+.tc:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.tc.sel{--z:24px;outline:4px solid #8a85ff;outline-offset:2px;animation:bob .9s ease-in-out infinite alternate}
+@keyframes bob{to{transform:perspective(600px) translateZ(34px) translateY(-3px)}}
+.tc.ok{pointer-events:none;background:linear-gradient(145deg,#c8f08a,#8ac926);box-shadow:0 3px 0 #4f7a00,0 6px 0 #3f6200,0 0 22px 4px rgba(138,201,38,.6);
+  animation:spin .7s ease-out}
+.tc.ok::after{content:" ✓"}
+@keyframes spin{from{transform:perspective(600px) rotateX(360deg) scale(.9)}}
+.tc.bad{animation:shake .4s;background:linear-gradient(145deg,#ffb3b6,#ff595e)}
+@keyframes shake{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.found{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:640px;margin:16px auto 0;min-height:34px}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:.9rem}
+.btn{all:unset;cursor:pointer;background:linear-gradient(145deg,#ff7a7f,#ff595e);color:#fff;font-weight:700;padding:10px 24px;border-radius:14px;
+  box-shadow:0 4px 0 #c23338,0 10px 16px rgba(120,20,30,.35);margin-top:14px}
+.btn:active{transform:translateY(3px)}
+.btn:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.overlay{position:fixed;inset:0;background:rgba(10,12,40,.6);display:grid;place-items:center;z-index:20;padding:20px}
+.overlay[hidden]{display:none}
+.modal{background:#fff8e7;color:#14213d;border-radius:24px;padding:26px 30px;max-width:380px;box-shadow:0 6px 0 #d9c8a0,0 30px 50px rgba(0,0,0,.45)}
+.modal h2{margin:0 0 6px;font-size:2rem}
+.conf{position:fixed;top:-20px;width:10px;height:16px;z-index:30;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translate3d(var(--dx),110vh,0) rotateX(720deg) rotateY(540deg)}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:480px){.cols{gap:10px}.col{padding:8px;gap:10px}}
+@media (prefers-reduced-motion:reduce){.tc,.tc.sel,.tc.ok,.tc.bad{animation:none;transition:none}}
+</style>
+</head>
+<body>
+<h1>Pareo de sinónimos</h1>
+<p class="sub">Toca una palabra y luego su sinónimo. También puedes arrastrarla.</p>
+<div class="stats">
+  <div class="stat"><b id="moves">0</b><span>Intentos</span></div>
+  <div class="stat"><b id="pairs">0 / 9</b><span>Parejas</span></div>
+</div>
+<div class="cols">
+  <div class="col"><h2>Palabra</h2><div id="lw" style="display:contents"></div></div>
+  <div class="col"><h2>Sinónimo</h2><div id="ls" style="display:contents"></div></div>
+</div>
+<div class="found" id="found"></div>
+<button class="btn" id="reset" type="button">Barajar y reiniciar</button>
+<div class="sr" role="status" aria-live="polite" id="live"></div>
+<div class="overlay" id="win" hidden role="dialog" aria-modal="true" aria-labelledby="wt">
+  <div class="modal"><h2 id="wt">¡Lo lograste!</h2><p id="wmsg"></p><button class="btn" id="again" type="button">Jugar de nuevo</button></div>
+</div>
+<script>
+var PAIRS=[["Ingenuo","Inocente"],["Aprensión","Recelo"],["Inanición","Desnutrición"],["Sombrío","Lúgubre"],["Trastabillar","Tropezar"],["Cautela","Prudencia"],["Mezquino","Ruin"],["Frenesí","Exaltación"],["Opulencia","Lujo"]];
+function $(id){return document.getElementById(id)}
+var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+var sel=null,moves=0,done=0,busy=false,dragged=null;
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function mk(text,p,kind){
+  var b=document.createElement('button');b.type='button';b.className='tc '+kind;b.textContent=text;b.dataset.p=p;b.dataset.k=kind;
+  if(kind==='w'){b.draggable=true;
+    b.addEventListener('dragstart',function(e){dragged=b;e.dataTransfer.setData('text/plain',p);select(b)});}
+  else{b.addEventListener('dragover',function(e){e.preventDefault()});
+    b.addEventListener('drop',function(e){e.preventDefault();if(dragged){sel=dragged;try_pair(b)}})}
+  b.addEventListener('click',function(){click(b)});
+  b.addEventListener('pointermove',function(e){
+    if(reduce||e.pointerType==='touch'||b.classList.contains('ok')||b.classList.contains('sel'))return;
+    var r=b.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
+    b.style.setProperty('--ry',(x*16)+'deg');b.style.setProperty('--rx',(-y*16)+'deg');b.style.setProperty('--z','10px')});
+  b.addEventListener('pointerleave',function(){b.style.removeProperty('--rx');b.style.removeProperty('--ry');b.style.removeProperty('--z')});
+  return b;
+}
+function start(){
+  sel=null;moves=0;done=0;busy=false;dragged=null;
+  $('moves').textContent='0';$('pairs').textContent='0 / 9';$('found').innerHTML='';$('win').hidden=true;
+  $('lw').innerHTML='';$('ls').innerHTML='';
+  var idx=PAIRS.map(function(_,i){return i});
+  shuffle(idx.slice()).forEach(function(i){$('lw').appendChild(mk(PAIRS[i][0],i,'w'))});
+  shuffle(idx.slice()).forEach(function(i){$('ls').appendChild(mk(PAIRS[i][1],i,'s'))});
+}
+function select(b){if(sel)sel.classList.remove('sel');sel=b;b.classList.add('sel')}
+function click(b){
+  if(busy||b.classList.contains('ok'))return;
+  if(b.dataset.k==='w'){if(sel===b){b.classList.remove('sel');sel=null}else select(b);return}
+  if(!sel){live('Primero elige una palabra');return}
+  try_pair(b);
+}
+function live(t){$('live').textContent=t}
+function try_pair(s){
+  var w=sel;if(!w||busy)return;
+  moves++;$('moves').textContent=moves;busy=true;w.classList.remove('sel');
+  if(w.dataset.p===s.dataset.p){
+    w.classList.add('ok');s.classList.add('ok');done++;$('pairs').textContent=done+' / 9';
+    var c=document.createElement('span');c.className='chip';c.textContent=w.textContent.replace(' ✓','')+' = '+s.textContent.replace(' ✓','');$('found').appendChild(c);
+    live('Correcto: '+c.textContent);sel=null;dragged=null;busy=false;
+    if(done===9)win();
+  }else{
+    w.classList.add('bad');s.classList.add('bad');live('Esa no es la pareja, intenta otra vez');
+    setTimeout(function(){w.classList.remove('bad');s.classList.remove('bad');sel=null;dragged=null;busy=false},500);
+  }
+}
+function win(){
+  $('wmsg').textContent='Uniste las 9 parejas en '+moves+' intentos.';
+  setTimeout(function(){$('win').hidden=false;$('again').focus();if(!reduce)confetti()},600);
+}
+function confetti(){
+  var cols=['#ffb703','#2ec4b6','#ff595e','#8ac926','#8a85ff'];
+  for(var i=0;i<70;i++){
+    var d=document.createElement('i');d.className='conf';d.style.left=Math.random()*100+'vw';d.style.background=cols[i%5];
+    d.style.setProperty('--dx',(Math.random()*160-80)+'px');d.style.animationDuration=(2.2+Math.random()*2)+'s';d.style.animationDelay=Math.random()*.8+'s';
+    document.body.appendChild(d);(function(x){setTimeout(function(){x.remove()},5500)})(d);
+  }
+}
+$('reset').onclick=start;$('again').onclick=start;
+start();
+</script>
+</body>
+</html>
